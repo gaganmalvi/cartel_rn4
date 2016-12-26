@@ -1814,6 +1814,7 @@ int __cpuhp_setup_state(enum cpuhp_state state,
 			bool multi_instance)
 {
 	int cpu, ret = 0;
+	bool dynstate;
 
 	if (cpuhp_cb_check(state) || !name)
 		return -EINVAL;
@@ -1823,6 +1824,12 @@ int __cpuhp_setup_state(enum cpuhp_state state,
 
 	ret = cpuhp_store_callbacks(state, name, startup, teardown,
 				    multi_instance);
+
+	dynstate = state == CPUHP_AP_ONLINE_DYN;
+	if (ret > 0 && dynstate) {
+		state = ret;
+		ret = 0;
+	}
 
 	if (ret || !invoke || !startup)
 		goto out;
@@ -1854,7 +1861,7 @@ out:
 	 * If the requested state is CPUHP_AP_ONLINE_DYN, return the
 	 * dynamically allocated state in case of success.
 	 */
-	if (!ret && state == CPUHP_AP_ONLINE_DYN)
+	if (!ret && dynstate)
 		return state;
 	return ret;
 }
